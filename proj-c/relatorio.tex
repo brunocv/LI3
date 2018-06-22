@@ -1,0 +1,351 @@
+\documentclass{article}
+\usepackage[utf8]{inputenc}
+\usepackage[portuges]{babel}
+\usepackage{graphicx}
+\usepackage[labelformat=empty]{caption}
+\usepackage{color}
+\usepackage[dvipsnames]{xcolor}
+\usepackage{float}
+\usepackage{textcomp}
+\usepackage{listings}
+
+
+\definecolor{solarized@base03}{HTML}{002B36}
+\definecolor{solarized@base02}{HTML}{073642}
+\definecolor{solarized@base01}{HTML}{586e75}
+\definecolor{solarized@base00}{HTML}{657b83}
+\definecolor{solarized@base0}{HTML}{839496}
+\definecolor{solarized@base1}{HTML}{93a1a1}
+\definecolor{solarized@base2}{HTML}{EEE8D5}
+\definecolor{solarized@base3}{HTML}{FDF6E3}
+\definecolor{solarized@yellow}{HTML}{B58900}
+\definecolor{solarized@orange}{HTML}{CB4B16}
+\definecolor{solarized@red}{HTML}{DC322F}
+\definecolor{solarized@magenta}{HTML}{D33682}
+\definecolor{solarized@violet}{HTML}{6C71C4}
+\definecolor{solarized@blue}{HTML}{268BD2}
+\definecolor{solarized@cyan}{HTML}{2AA198}
+\definecolor{solarized@green}{HTML}{859900}
+
+\lstset{
+  language=C,
+  upquote=true,
+  columns=fixed,
+  tabsize=2,
+  extendedchars=true,
+  breaklines=true,
+  numbers=left,
+  numbersep=5pt,
+  rulesepcolor=\color{solarized@base03},
+  numberstyle=\tiny\color{solarized@base01},
+  basicstyle=\footnotesize\ttfamily,
+  keywordstyle=\color{solarized@green},
+  stringstyle=\color{solarized@yellow}\ttfamily,
+  identifierstyle=\color{solarized@blue},
+  commentstyle=\color{solarized@base01},
+  emphstyle=\color{solarized@red}
+}
+
+\graphicspath{ {images/} }
+
+\title{\bf{\textcolor{Mahogany}{Relat\'{o}rio do projeto em C de LI3}}}
+\author{Jo\~{a}o Pimentel A80874 \and Jaime Leite A80757 \and Bruno Veloso A78352 }
+\date{Abril 2018}
+
+\begin{document}
+\maketitle
+\begin{center}
+
+\par
+\large {Universidade do Minho}
+\par
+\large {Departamento de InformÃ¡tica}
+\par
+\large {LaboratÃ³rios de InformÃ¡tica 3}
+\vfill
+\bf Mestrado Integrado em Engenharia InformÃ¡tica
+\par
+\includegraphics[width=5cm]{UM}
+\end{center}
+
+\newpage
+
+\tableofcontents
+
+\newpage
+
+\section{IntroduÃ§Ã£o}
+
+\par Este relat\'{o}rio aborda a resolu\c{c}\~{a}o do projeto pr\'{a}tico de \textquotedblleft{}Laborat\'{o}rios de Inform\'{a}tica 3\textquotedblright{}, na linguagem \textquotedblleft{}C\textquotedblright{}. O mesmo consiste em desenvolver um programa para analisar dados presentes em ficheiros \emph{XML} relativos a conte\'{u}do presente no \emph{StackOverflow}.
+
+\par Para realizar esta tarefa foi necess\'{a}rio criar tr\^{e}s m\'{o}dulos: um para parsing/load dos dados necess\'{a}rios para realizar as tarefas pretendidas; outro para trabalhar sobre as estruturas por n\'{o}s definidas (\emph{USER}, \emph{QUESTION},\emph{ANSWER}, \emph{TAGS}); e, por fim, um m\'{o}dulo com o c\'{o}digo relativo \`{a} resolu\c{c}\~{a}o das queries fornecidas pela equipa docente.  
+
+\par Ao longo do relat\'{o}rio ser\~{a}o abordadas as decis\~{o}es tomadas na implementa\c{c}\~{a}o do projeto, nomeadamente, quais as estruturas utilizadas para criar cada um dos m\'{o}dulos, o porqu\^{e} das escolhas feitas e as suas \emph{API's}.
+
+\newpage
+
+\section{MÃ³dulos}
+\par Nesta sec\c{c}\~{a}o s\~{a}o apresentados excertos de c\'{o}digo comentado, tal como a explica\c{c}\~{a}o das solu\c{c}\~{o}es usadas e as divis\~{o}es do projeto.
+
+\subsection{Estrutura de Dados (\emph{struct})}
+\par Para guardar toda a informa\c{c}\~{a}o necess\'{a}ria lida a partir dos ficheiros, foram usadas quatro \emph{HashTables}, uma para cada estrutura de dados definida.
+
+\par Sejam \`{a}s estruturas que tiveram de ser definidas de ra\'{\i}z:
+\begin{enumerate}
+\item  \emph{USER};
+\item \emph{QUESTION};
+\item \emph{ANSWER};
+\item \emph{TAGS};
+\end{enumerate}
+
+\par Tendo em conta que o tempo de procura e inser\c{c}\~{a}o numa \emph{HashTable} \'{e} (\emph{O(1)}), foi escolhida como o principal tipo de dados do trabalho. Sendo que, em caso de ser necess\'{a}rio fazer altera\c{c}\~{o}es sobre algum elemento da mesma, \'{e} utilizado um clone, para n\~{a}o corromper os dados.
+
+\subsubsection{TCD\_community}
+\par A community tem as quatro \emph{HashTables} j\'{a} mencionadas acima, no formato \emph{GHashTable*}, ou seja, \emph{HashTables} implementadas pela \emph{Glib}. Sendo que a \emph{HashTable respostas} \'{e} composta por elementos do tipo \emph{ANSWER}, \emph{quest\~{o}es} por\emph{ QUESTION}, \emph{users} por \emph{USER} e  \emph{tags} por \emph{TAGS}, como seria expect\'{a}vel.
+
+\begin{lstlisting}
+typedef struct TCD_community{
+    GHashTable* respostas; /*Hash com as respostas */   
+    GHashTable* questoes; /*Hash com as questoes */
+    GHashTable* users; /*Hash com os users */
+    GHashTable* tags; /* Hash com as tags */
+}TCD_community;
+\end{lstlisting}
+
+\subsubsection{USER}
+Um \emph{USER} \'{e} composto pelos seu \emph{ID}, \emph{username}, contagem de \emph{posts} (perguntas e respostas), a sua biografia e reputa\c{c}\~{a}o.
+
+\begin{lstlisting}
+typedef struct user {
+    gpointer id; /* Apontador para o ID do user */
+    char username[256];  /* String que contem o username do user */
+    int post_count;  /* Contador de posts */
+    char short_bio[16384];  /* Biografia do utilizador */
+    int reputation; /* Valor da reputacao */ 
+}*USER;
+\end{lstlisting}
+
+\subsubsection{QUESTION}
+\par Uma \emph{QUESTION} tem o seu \emph{ID} e do respetivo autor, a data de cria\c{c}\~{a}o (no formato \emph{Date} e em forma de inteiro), t\'{\i}tulo, \emph{tags}, os votos e a contagem de respostas.
+
+\begin{lstlisting}
+typedef struct question {
+    gpointer id_user; /* Apontador para o ID do autor */
+    Date postagem; /* Data da postagem em formato Date */
+    int date; /* Data da postagem em formato int => exemplo: 20181209 = 2018-12-9 */
+    gpointer id; /* Apontador para o ID da questao */
+    char titulo[256];  /* String que contem o titulo da questao */
+    char tags[128]; /* String que contem todas as tags no formato <tag>*/
+    int votos; /* Contador de votos da questao*/
+    int respostas_count; /* Contador das respostas */
+}*QUESTION;
+
+\end{lstlisting}
+
+\subsubsection{ANSWER}
+\par  Uma \emph{ANSWER} possui, tamb\'{e}m, a data em dois formatos, o seu \emph{ID}, do autor e da respetiva quest\~{a}o, o n\'{u}mero de coment\'{a}rios, votos (\emph{Up} e \emph{Down}), o \emph{score} e a quantidade de favoritos.
+
+\begin{lstlisting}
+typedef struct answer{
+	Date postagem; /* Data da postagem em formato Date */
+	int date; /* Data da postagem em formato int => exemplo: 20181209 = 2018-12-9 */
+	gpointer id_resp; /* Apontador para o ID da resposta */
+	gpointer id_question; /* Apontador para o ID da questao */
+	gpointer id_user; /* Apontador para o ID do autor */
+	int comentarios; /* Numero de comentarios */
+	int votesUp; /*Votos positivos*/
+	int votesDown; /*Votos negativos*/
+	int score; /* Score da resposta */
+	int favoritos; /* Numero de favoritos*/
+}*ANSWER;
+\end{lstlisting}
+
+\subsubsection{TAGS}
+\par  Uma \emph{TAG} possui apenas duas caracter\'{\i}sticas: uma \emph{String} com a \emph{TAG} em quest\~{a}o (exemplo: \textquotedblleft{}ssh\textquotedblright{}) e \emph{ID} da \emph{TAG} em quest\~{a}o, consoante o valor referente no ficheiro \emph{XML}.
+
+\begin{lstlisting}
+typedef struct tags {
+    gpointer id; /* ID de uma TAG consoante o ficheiro XML */
+    char tag[256]; /* String que contem a tag em questao */
+}*TAGS;
+\end{lstlisting}
+
+\clearpage
+
+\subsection{Parsing/Load}
+\quad Esta sec\c{c}\~{a}o descreve a realiza\c{c}\~{a}o de uma das partes fundamentais do projeto, o \emph{parse} dos ficheiros e \emph{load} do seu conte\'{u}do essencial  para a mem\'{o}ria. Para isto, foram usadas fun\c{c}\~{o}es j\'{a} existentes na biblioteca \emph{libxml2}. 
+
+\subsubsection{Confirma\c{c}\~{a}o da poss\'{\i}vel utiliza\c{c}\~{a}o de ficheiro}
+\par Este excerto de c\'{o}digo verifica se o ficheiro fornecido est\'{a} em formato \emph{XML} e se possui conte\'{u}do antes de processar a sua informa\c{c}\~{a}o. Caso alguma destas propriedades n\~{a}o se verifique, este retorna um valor de erro, caso contr\'{a}rio o ficheiro ser\'{a} processado. 
+
+\begin{lstlisting}
+    xmlNodePtr cur = xmlDocGetRootElement(doc);
+    
+    /* ... */
+    
+    if (doc == NULL ) {
+        fprintf(stderr,"Document not parsed successfully. \n");
+        return 0;
+    }
+
+    if (cur == NULL) {
+        fprintf(stderr,"empty document\n");
+        return 1;
+    }
+\end{lstlisting}
+
+\subsubsection{parseQuestion}
+\par Esta \'{e} a fun\c{c}\~{a}o mais complexa deste m\'{o}dulo, j\'{a} que faz a inser\c{c}\~{a}o de tanto quest\~{o}es, como respostas nas respetivas HashTables.
+
+\par \'{E} utilizada, por diversas ocasi\~{o}es, a fun\c{c}\~{a}o \textquotedblleft{}xmlGetProp\textquotedblright{} para encontrar a caracter\'{\i}stica pretendida, uma de cada vez.
+
+\par No momento em que todos os par\^{a}metros de uma struct j\'{a} est\~{a}o guardados, \'{e} criada uma nova para acrescentar \`{a} HashTable utilizando fun\c{c}\~{o}es definidas no m\'{o}dulo struct (newQuest, newAnswer). 
+
+\par \'{E} ainda incrementado o n\'{u}mero de posts de um user nesta fun\c{c}\~{a}o.
+
+\begin{lstlisting}
+   uri = xmlGetProp(cur, (xmlChar*)"Id");
+   id = atoi((char*) uri);
+   xmlFree(uri);
+/* ... */
+
+   q = newQuest(id, title, votos, respostas, data, tags,id_user);
+   g_hash_table_insert (questoes, GINT_TO_POINTER(q->id),q); 
+   incrementa_posts(tq->users, q->id_user);
+	    
+\end{lstlisting}
+
+\subsubsection{parseUser}
+\par Esta fun\c{c}\~{a}o funciona da mesma forma que a anterior, s\'{o} que gera um USER, partindo do mesmo princ\'{\i}pio de procura dos par\^{a}metros e cria\c{c}\~{a}o de uma struct completa.   
+
+\begin{lstlisting}
+cur = cur->xmlChildrenNode;
+    
+    while (cur != NULL) {
+        if ((!xmlStrcmp(cur->name, (const xmlChar *)"row"))) {
+	    uri = xmlGetProp(cur, (xmlChar*)"Id");
+	    id = atoi((char*) uri);
+	    xmlFree(uri);
+	    uri = xmlGetProp(cur, (xmlChar*)"DisplayName");
+	    if (uri == NULL) strcpy(name, "NULL");
+	    else strcpy (name,(char*)uri);
+	    xmlFree(uri); 
+	    uri = xmlGetProp(cur, (xmlChar*)"AboutMe");
+	    if (uri == NULL) strcpy(bio, "NULL"); 
+	    else strcpy (bio,(char*)uri);
+	    xmlFree(uri);
+	    uri = xmlGetProp(cur, (xmlChar*)"Reputation");
+	    reputation = atoi((char*)uri);
+	    xmlFree(uri);
+	    u = newUser(id, reputation, name, posts, bio);
+    	g_hash_table_insert (users,GINT_TO_POINTER(u->id),u); 	
+         }
+  }
+\end{lstlisting}
+
+
+\subsubsection{parseVotes}
+\par A fun\c{c}\~{a}o parseVotes atua sobre o ficheiro Votes.xml e acrescenta votos (Up, Down e favoritos) ao contador dos mesmos de cada answer, pois \'{e} o \'{u}nico tipo de dados nos quais s\~{a}o utilizados os votos.   
+
+\begin{lstlisting}
+    while (cur != NULL){
+        if ((!xmlStrcmp(cur->name, (const xmlChar *)"row"))){
+	    	uri = xmlGetProp(cur, (xmlChar*)"PostId");
+	    	i = atoi((char*)uri);
+	    	xmlFree(uri);
+	    	item_ptr = g_hash_table_lookup(tq->respostas,GINT_TO_POINTER(i));
+	    	if (item_ptr != NULL) {
+	    		uri = xmlGetProp(cur, (xmlChar*)"VoteTypeId");
+            	j = atoi((char*)uri);
+            	xmlFree(uri);
+	        	if (j == 2) incrementa_votesUp (item_ptr);
+            	else if (j == 3) incrementa_votesDown (item_ptr);
+            	else if (j == 5) incrementa_favs (item_ptr);
+          	}      
+       }
+\end{lstlisting}
+
+\subsubsection{parseTags}
+\par A fun\c{c}\~{a}o parseTags corre o ficheiro Tags.xml, criando structs do tipo TAGS, que apenas t\^{e}m em considera\c{c}\~{a}o a String da mesma e o seu ID. Em seguida \'{e} poss\'{\i}vel ver a forma como funciona a mesma.
+
+\begin{lstlisting}
+    cur = cur->xmlChildrenNode;
+    
+    while (cur != NULL) {
+         if ((!xmlStrcmp(cur->name, (const xmlChar *)"row"))) {
+            uri = xmlGetProp(cur, (xmlChar*)"Id");
+            id = atoi((char*) uri);
+            xmlFree(uri);
+            uri = xmlGetProp(cur, (xmlChar*)"TagName");
+            if (uri == NULL) strcpy(tag, "NULL");
+            else strcpy (tag,(char*)uri);
+            xmlFree(uri); 
+            u = newTag(id,tag);
+            g_hash_table_insert (tags,GINT_TO_POINTER(u->id),u); // mais eficiente	
+	}
+\end{lstlisting}
+
+
+
+
+\subsection{Queries}
+\par Nesta sec\c{c}\~{a}o ser\~{a}o mencionados os modos como foram executadas as queries fornecidas e qual o algoritmo desenvolvido para atingir ao resultado esperado. 
+
+\subsubsection{Init}
+\par A \emph{query init} apenas aloca mem\'{o}ria para a estrutura \emph{TCD\_community}, inicializando as \emph{HashTable} a \emph{NULL}. Ser\~{a}o, depois, alteradas para o seu valor final depois de aplicadas as fun\c{c}\~{o}es de \emph{load}.
+
+\subsubsection{Load}
+\par Esta \emph{query} possui a carga de trabalho mais elevada do programa, j\'{a} que carrega para mem\'{o}ria todas os dados necess\'{a}rios \`{a} realiza\c{c}\~{a}o das outras \emph{queries}, correndo os ficheiros de \emph{Users}, \emph{Posts}, \emph{Votes} e \emph{Tags}. De modo a amortizar o tempo de \emph{loading}, foi decidido que certos par\^{a}metros que podiam ter sido acrescentados \`{a}s structs, como por exemplo, os \emph{ID's} de todos os \emph{posts} de um \emph{user}, n\~{a}o o foram, pois implicariam um aumento no per\'{\i}odo de execu\c{c}\~{a}o e este aspeto nem sempre \'{e} necess\'{a}rio \`{a} realiza\c{c}\~{a}o das interroga\c{c}\~{o}es.
+
+\subsubsection{Info From Post}
+\par Dado o identificador de um \emph{post}, a fun\c{c}\~{a}o retorna o t\'{\i}tulo do \emph{post} e o nome de utilizador do autor. Se o \emph{post} for uma resposta, a fun\c{c}\~{a}o dever\'{a} retornar informa\c{c}\~{o}es da pergunta correspondente. Para isto foi necess\'{a}rio encontrar as informa\c{c}\~{o}es em quest\~{a}o nas \emph{HashTables}, existentes na \emph{TAD\_community}, usando fun\c{c}\~{o}es de \emph{lookup}.  
+
+\subsubsection{Top Most Active}
+\par Tendo em conta que o \emph{output} da \emph{query} em quest\~{a}o deveria ser uma \emph{LONG\_list} com \emph{N ID's} dos \emph{users} mais ativos, ou seja, com mais \emph{posts} (perguntas e respostas), bastou "clonar" os \emph{users} para uma \emph{GList} e orden\'{a}-la pelo par\^{a}metro \emph{post\_count}. Posteriormente, s\~{a}o retirados os \emph{N} elementos com mais posts da referida \emph{GList} para a \emph{LONG\_list}.  
+
+\subsubsection{Total Posts}
+\par Como \'{e} pedido que seja devolvido um par de valores, que representem o n\'{u}mero de perguntas e respostas num dado intervalo de tempo, a resolu\c{c}\~{a}o come\c{c}ou por converter as datas dadas para inteiros, de forma a serem feitas compara\c{c}\~{o}es mais eficientes. Dando uso \`{a} execu\c{c}\~{a}o de uma fun\c{c}\~{a}o \emph{foreach} sobre a \emph{Hash} das quest\~{o}es e outra sobre a das respostas, em que se verifica se a data do post est\'{a} contida entre dois valores acima mencionados e adiciona uma unidade ao respetivo contador caso se verifique a condi\c{c}\~{a}o.
+
+\subsubsection{Questions with tag}
+\par Uma vez que as tags de uma determinada \emph{QUESTION} est\~{a}o guardadas na forma de \emph{String}, sendo divididas entre si por \textquotedblleft{}\textless{}" "\textgreater{}\textquotedblright{}, ou seja, uma quest\~{a}o \emph{Q} que tenha a tag \textquotedblleft{}ssh\textquotedblright{} e \textquotedblleft{}system\_call\textquotedblright{} ficar\'{a} com o par\^{a}metro Q -\textgreater{} tags = \textquotedblleft{}\textless{}ssh\textgreater{}\textless{}system\_call\textgreater{}\textquotedblright{}. Assim, a solu\c{c}\~{a}o evidente passou por concatenar um \textless{} antes da tag dada e um \textgreater{} depois, ficando algo como: \textless{}tag\textgreater{}. Sendo assim, usando o mesmo m\'{e}todo acima mencionado para validar se a quest\~{a}o em an\'{a}lise pertence ao intervalo, s\'{o} foi necess\'{a}rio dar uso \`{a} fun\c{c}\~{a}o \emph{strstr} definida na biblioteca de \emph{C}, de modo a ver se querer\'{\i}amos guardar uma certa pergunta.  
+
+\subsubsection{Get User Info}
+\par Para a \emph{query} em quest\~{a}o foi adotado um m\'{e}todo bastante simples, em que, primeiramente, foi encontrado o utilizador do \emph{input}, usando um m\'{e}todo de \emph{lookup} na \emph{Hash} de \emph{users} consoante o \emph{ID} do mesmo. Em seguida, foram criadas duas \emph{GLists} (uma para quest\~{o}es e outra para respostas), em que seriam colocados todos os \emph{posts} do \emph{USER} em an\'{a}lise, ordenados por cronologia inversa. Deste modo, bastou definir um ciclo de inser\c{c}\~{a}o do \emph{ID} do \emph{post} num \emph{array}, tendo em considera\c{c}\~{a}o a data mais recente.
+
+\subsubsection{Most Voted Answers}
+\par De modo a obter as \emph{N} respostas com mais votos, num certo intervalo de tempo, foi utilizada uma \emph{struct} auxiliar que cont\'{e}m a data inicial e final do intervalo (em forma de inteiro), bem como uma \emph{GList}, inicialmente vazia, e a sua dimens\~{a}o. Usando um \emph{foreach} sobre a \emph{Hash} das respostas, \'{e} testado se uma \emph{ANSWER} pertence ao intervalo e, caso aconte\c{c}a, \'{e} adicionada \`{a} \emph{GList}, ordenadamente, consoante o n\'{u}mero de votos. No final, basta retirar os \emph{N ID's} de respostas com mais votos presentes na lista ligada. 
+
+\subsubsection{Most Answered Questions}
+\par Foi utilizado um m\'{e}todo em que, percorrendo a \emph{HashTable} das quest\~{o}es, seriam adicionadas, a uma nova \emph{Hash}, as quest\~{o}es cuja data de publica\c{c}\~{a}o se enquadrasse no intervalo temporal dado, tendo, ainda, um contador de respostas, iniciado a zero. Em seguida, era percorrida a \emph{HashTable} que continha as respostas, em que se analisava se a pergunta a que respondia existia na \emph{Hash} gerada acima. Caso isso acontecesse, seria incrementada uma unidade no contador. Finalmente, a \emph{Hash} que sofreu altera\c{c}\~{o}es \'{e} transformada numa \emph{GList}, ordenada pelo contador acima menciona, sendo f\'{a}cil retirar as \emph{N} quest\~{o}es mais respondidas. 
+
+\subsubsection{Contains Word}
+\par Para resolver a \emph{query} seguinte, foi pensado numa forma semelhante \`{a} \emph{query 4}, uma vez que foram acrescentados espa\c{c}os \`{a} palavra em procura (exemplo: \textquotedblleft{}droid\textquotedblright{} -\textgreater{} \textquotedblleft{} droid \textquotedblright{}), de modo a evitar casos em que uma palavra pudesse ocorrer dentro de outra, como no caso de \textquotedblleft{}android\textquotedblright{} e \textquotedblleft{}droid\textquotedblright{}. Al\'{e}m disso, foi copiada a \emph{String} do t\'{\i}tulo da quest\~{a}o em an\'{a}lise para uma \emph{String} auxiliar, em que todos os caracteres que n\~{a}o fossem alfab\'{e}ticos s\~{a}o convertidos em espa\c{c}os e s\~{a}o, ainda, concatenados dois espa\c{c}os, um no in\'{\i}cio e outro no fim. Finalmente, bastou validar se a palavra ocorria no t\'{\i}tulo de uma quest\~{a}o dando uso \`{a} fun\c{c}\~{a}o \emph{strstr}, onde, caso acontecesse, seria guardada numa \emph{GList} ordenada pelas datas, \`{a} qual, no final, s\~{a}o copiados para uma \emph{LONG\_list} os \emph{ID's} das \emph{N} quest\~{o}es mais recentes.  
+
+\subsubsection{Both Participated}
+\par Para conseguir obter uma lista com os \emph{posts} em que ambos os utilizadores do \emph{input}, foi decidido que as quest\~{o}es dos mesmos seriam guardadas em duas \emph{HashTables} e que as respostas seriam guardadas na forma da pergunta correspondente. Assim, utilizando uma fun\c{c}\~{a}o que confirma se os elementos da \emph{Hash} de menor dimens\~{a}o ocorrem na maior, \'{e} poss\'{\i}vel gerar uma \emph{GList} com as quest\~{o}es em que ambos os users participam, ordenada em termos temporais, de forma r\'{a}pida e eficiente, gra\c{c}as \`{a} complexidade associada \`{a}s \emph{HashTables}. 
+
+\subsubsection{Better Answer}
+\par De modo a ser obtida a melhor resposta a uma quest\~{a}o, ou seja, segundo o enunciado, a resposta que tenha o valor de \textbf{\emph{(score \texttimes{} 0.45) + (reputa\c{c}\~{a}o \texttimes{} 0.25) + (votos \texttimes{} 0.2) + (coment\'{a}rios \texttimes{} 0.1)}} mais elevado, o m\'{e}todo adotado foi percorrer a \emph{Hash} de respostas para encontrar quais estavam relacionadas com a quest\~{a}o do \emph{input}, calculando os valores necess\'{a}rios. Ao encontrar um valor maior que o que estava guardado, o \emph{ID} da resposta \'{e}, ent\~{a}o, guardado na \emph{struct} auxiliar. 
+
+\subsubsection{Most Used Best Rep}
+\par Sabendo que o output pedido era uma lista com os \emph{ID's} das \emph{N tags} mais usadas pelos \emph{N users} com melhor reputa\c{c}\~{a}o, o algoritmo de resolu\c{c}\~{a}o passou por criar \emph{GLists} auxiliares que estivessem ordenadas pelos par\^{a}metros mais convenientes: uma com os utilizadores ordenados pela reputa\c{c}\~{a}o; outra com as quest\~{o}es dos \emph{N} utilizadores com melhor reputa\c{c}\~{a}o, no determinado intervalo de tempo; e uma com as \emph{TAGS} e respetivos contadores, inicializados a zero. De notar que foram acrescentados \textless{} \textgreater{} \`{a} \emph{String} da \emph{tag}, de modo a facilitar a procura (m\'{e}todo utilizado na \emph{query 4}). Percorrendo a \emph{GList} das quest\~{o}es para cada \emph{TAG}, \'{e} poss\'{\i}vel incrementar ao valor do contador quando encontra uma correspond\^{e}ncia. Finalmente, os \emph{ID's} \emph{TAGS} mais utilizadas s\~{a}o colocados numa \emph{LONG\_list}, sendo que, as que tiverem zero ocorr\^{e}ncias, n\~{a}o aparecer\~{a}o.
+
+\subsubsection{Clean}
+\par Sabendo que a gest\~{a}o de mem\'{o}ria \'{e} uma caracter\'{\i}stica importante deste projeto e que foi um aspeto ao qual foram feitas v\'{a}rias implementa\c{c}\~{o}es consoante os resultados obtidos com o uso da ferramenta \textquotedblleft{}\emph{valgrind}\textquotedblright{}, as quatro \emph{HashTables} foram destru\'{\i}das usando a fun\c{c}\~{a}o \textquotedblleft{}\emph{g\_hash\_table\_destroy}\textquotedblright{} sobre cada uma, definida na \emph{GLib}, de modo a libertar o seu conte\'{u}do em mem\'{o}ria. 
+
+\newpage
+
+\section{ConclusÃ£o}
+\par Em suma, \'{e} opini\~{a}o dos elementos do grupo que o projeto foi conclu\'{\i}do com sucesso. Atrav\'{e}s do \emph{parsing} dos ficheiros \emph{XML} foi poss\'{\i}vel extrair toda a informa\c{c}\~{a}o considerada relevante para os desafios propostos, de forma otimizada, guardando a mesma em estruturas de dados pensadas e implementadas minuciosamente. Sabendo que o objetivo, definido pelos 3 alunos, passava por criar estruturas simples e eficazes, tendo em conta os resultados obtidos, \'{e} cred\'{\i}vel que este objetivo foi atingido, pelo que o projeto foi uma forma de aprendizagem bastante eficaz para melhorias nos conhecimentos de \emph{algoritmia e complexidade}, bem como \textquotedblleft{}manipula\c{c}\~{a}o\textquotedblright{} de dados em grandes quantidades, em tempos n\~{a}o muito elevados.
+
+\section{Bibliografia}
+\par https://developer.gnome.org/glib/
+
+\begin{center}
+\vfill
+\bf Mestrado Integrado em Engenharia InformÃ¡tica
+\par
+\includegraphics[width=5cm]{UM}
+\end{center}
+
+\end{document}
